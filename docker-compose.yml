@@ -1,0 +1,43 @@
+services:
+  backend:
+    image: artemkraskov/todo-backend:latest
+    build: ./backend
+    ports:
+      - "8000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${U_POSTSQL}:${P_POSTSQL}@db:5432/${DB_NAME}
+      DB_NAME: db
+      DB_USER: ${U_POSTSQL}
+      DB_PASSWORD: ${P_POSTSQL}
+      DB_PORT: 5432
+    restart: always
+  frontend:
+    image: artemkraskov/todo-frontend:latest
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: 5000
+  db:
+    image: postgres:18.4-alpine3.24
+    environment:
+      POSTGRES_PASSWORD: ${P_POSTSQL}
+      POSTGRES_USER: ${U_POSTSQL}
+      DB_NAME: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - db-data:/var/lib/postgresql
+
+volumes:
+  db-data:
